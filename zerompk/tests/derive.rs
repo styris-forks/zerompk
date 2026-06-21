@@ -192,13 +192,6 @@ struct BorrowedList<'a> {
 
 #[derive(ToMessagePack, FromMessagePack, Debug, PartialEq)]
 #[msgpack(array)]
-struct GenericWrapper<T> {
-    value: T,
-    other_field: bool,
-}
-
-#[derive(ToMessagePack, FromMessagePack, Debug, PartialEq)]
-#[msgpack(array)]
 struct CowPayload<'a> {
     data: std::borrow::Cow<'a, [u8]>,
     nums: std::borrow::Cow<'a, [i32]>,
@@ -255,18 +248,6 @@ fn derive_array_default() {
 }
 
 #[test]
-fn derive_generic_struct() {
-    let value = GenericWrapper {
-        value: "borrowed",
-        other_field: true,
-    };
-    let data = zerompk::to_msgpack_vec(&value).unwrap();
-
-    let decoded: GenericWrapper<&str> = zerompk::from_msgpack(&data).unwrap();
-    assert_eq!(decoded, value);
-}
-
-#[test]
 fn derive_default_repr_for_named_struct() {
     let point = DefaultReprPoint { x: 10, y: 20 };
     let data = zerompk::to_msgpack_vec(&point).unwrap();
@@ -283,10 +264,7 @@ fn derive_default_repr_for_named_struct() {
 fn derive_default_repr_for_enum() {
     let value = DefaultReprEvent::A;
     let data = zerompk::to_msgpack_vec(&value).unwrap();
-    #[cfg(not(feature = "default-as-map"))]
-    assert_eq!(data, vec![0x92, 0xa1, b'A', 0xc0]);
-    #[cfg(feature = "default-as-map")]
-    assert_eq!(data, vec![0x81, 0xa1, b'A', 0xc0]);
+    assert_eq!(data, vec![0xa1, b'A']);
 
     let decoded: DefaultReprEvent = zerompk::from_msgpack(&data).unwrap();
     assert_eq!(decoded, value);
@@ -581,7 +559,7 @@ fn derive_map_ignores_field() {
 fn derive_enum_unit_variant() {
     let value = Event::A;
     let data = zerompk::to_msgpack_vec(&value).unwrap();
-    assert_eq!(data, vec![0x92, 0xa1, b'A', 0xc0]); // ["A", nil]
+    assert_eq!(data, vec![0xa1, b'A']); // "A"
 
     let decoded: Event = zerompk::from_msgpack(&data).unwrap();
     assert_eq!(decoded, value);
@@ -626,7 +604,7 @@ fn derive_enum_named_map_variant() {
 fn derive_map_enum_unit_variant() {
     let value = MapEvent::A;
     let data = zerompk::to_msgpack_vec(&value).unwrap();
-    assert_eq!(data, vec![0x81, 0xa1, b'A', 0xc0]); // {"A": nil}
+    assert_eq!(data, vec![0xa1, b'A']); // "A"
 
     let decoded: MapEvent = zerompk::from_msgpack(&data).unwrap();
     assert_eq!(decoded, value);

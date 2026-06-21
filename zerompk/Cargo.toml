@@ -16,6 +16,7 @@ std = []
 derive = ["dep:zerompk_derive"]
 default-as-map = ["derive", "zerompk_derive/default-as-map"]
 chrono = ["dep:chrono"]
+preserve-int-width = []
 
 [dependencies]
 zerompk_derive = { version = "0.6.0", path = "../zerompk_derive", optional = true }

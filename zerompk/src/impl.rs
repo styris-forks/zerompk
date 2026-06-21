@@ -30,16 +30,34 @@ macro_rules! impl_scalar {
 }
 
 impl_scalar!(bool, write_boolean, read_boolean);
-impl_scalar!(i8, write_i8, read_i8);
-impl_scalar!(i16, write_i16, read_i16);
-impl_scalar!(i32, write_i32, read_i32);
-impl_scalar!(i64, write_i64, read_i64);
-impl_scalar!(u8, write_u8, read_u8);
-impl_scalar!(u16, write_u16, read_u16);
-impl_scalar!(u32, write_u32, read_u32);
-impl_scalar!(u64, write_u64, read_u64);
 impl_scalar!(f32, write_f32, read_f32);
 impl_scalar!(f64, write_f64, read_f64);
+
+#[cfg(not(feature = "preserve-int-width"))]
+mod int_impls {
+    use super::*;
+    impl_scalar!(i8, write_i8, read_i8);
+    impl_scalar!(i16, write_i16, read_i16);
+    impl_scalar!(i32, write_i32, read_i32);
+    impl_scalar!(i64, write_i64, read_i64);
+    impl_scalar!(u8, write_u8, read_u8);
+    impl_scalar!(u16, write_u16, read_u16);
+    impl_scalar!(u32, write_u32, read_u32);
+    impl_scalar!(u64, write_u64, read_u64);
+}
+
+#[cfg(feature = "preserve-int-width")]
+mod int_impls {
+    use super::*;
+    impl_scalar!(i8, write_i8_wide, read_i8);
+    impl_scalar!(i16, write_i16_wide, read_i16);
+    impl_scalar!(i32, write_i32_wide, read_i32);
+    impl_scalar!(i64, write_i64_wide, read_i64);
+    impl_scalar!(u8, write_u8_wide, read_u8);
+    impl_scalar!(u16, write_u16_wide, read_u16);
+    impl_scalar!(u32, write_u32_wide, read_u32);
+    impl_scalar!(u64, write_u64_wide, read_u64);
+}
 
 impl<'a> FromMessagePack<'a> for usize {
     #[inline(always)]
@@ -58,10 +76,17 @@ impl<'a> FromMessagePack<'a> for usize {
 impl ToMessagePack for usize {
     #[inline(always)]
     fn write<W: Write>(&self, writer: &mut W) -> crate::Result<()> {
+        #[cfg(not(feature = "preserve-int-width"))]
         if usize::BITS <= 32 {
-            writer.write_u32(*self as u32)
+            return writer.write_u32(*self as u32);
         } else {
-            writer.write_u64(*self as u64)
+            return writer.write_u64(*self as u64);
+        }
+        #[cfg(feature = "preserve-int-width")]
+        if usize::BITS <= 32 {
+            writer.write_u32_wide(*self as u32)
+        } else {
+            writer.write_u64_wide(*self as u64)
         }
     }
 }
@@ -83,10 +108,17 @@ impl<'a> FromMessagePack<'a> for isize {
 impl ToMessagePack for isize {
     #[inline(always)]
     fn write<W: Write>(&self, writer: &mut W) -> crate::Result<()> {
+        #[cfg(not(feature = "preserve-int-width"))]
         if isize::BITS <= 32 {
-            writer.write_i32(*self as i32)
+            return writer.write_i32(*self as i32);
         } else {
-            writer.write_i64(*self as i64)
+            return writer.write_i64(*self as i64);
+        }
+        #[cfg(feature = "preserve-int-width")]
+        if isize::BITS <= 32 {
+            writer.write_i32_wide(*self as i32)
+        } else {
+            writer.write_i64_wide(*self as i64)
         }
     }
 }

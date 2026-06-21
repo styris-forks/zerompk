@@ -133,6 +133,9 @@ pub trait Read<'de> {
     /// Reads a tag from the input, which can be either an integer or a string.
     fn read_tag(&mut self) -> Result<Tag<'de>>;
 
+    /// Returns the next marker byte without consuming it.
+    fn peek_marker(&mut self) -> Result<u8>;
+
     /// Validates that the next value in the input is an array of the expected length, and consumes the array header.
     #[inline(always)]
     fn check_array_len(&mut self, expected: usize) -> Result<()> {
@@ -804,6 +807,11 @@ impl<'de> Read<'de> for SliceReader<'de> {
         } else {
             Ok(Some(T::read(self)?))
         }
+    }
+
+    #[inline(always)]
+    fn peek_marker(&mut self) -> Result<u8> {
+        self.peek_byte()
     }
 
     #[inline(always)]
@@ -1549,6 +1557,12 @@ impl<'de, R: std::io::Read> Read<'de> for IOReader<R> {
             vec.push(T::read(self)?);
         }
         Ok(vec)
+    }
+
+    fn peek_marker(&mut self) -> Result<u8> {
+        let byte = self.read_byte()?;
+        self.unread_byte(byte);
+        Ok(byte)
     }
 
     fn read_tag(&mut self) -> Result<Tag<'de>> {

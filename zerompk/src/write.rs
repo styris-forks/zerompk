@@ -56,6 +56,30 @@ pub trait Write {
     /// Writes a signed 64-bit integer.
     fn write_i64(&mut self, i: i64) -> Result<()>;
 
+    /// Writes a `u8` as a uint8 marker regardless of value.
+    fn write_u8_wide(&mut self, u: u8) -> Result<()>;
+
+    /// Writes a `u16` as a uint16 marker regardless of value.
+    fn write_u16_wide(&mut self, u: u16) -> Result<()>;
+
+    /// Writes a `u32` as a uint32 marker regardless of value.
+    fn write_u32_wide(&mut self, u: u32) -> Result<()>;
+
+    /// Writes a `u64` as a uint64 marker regardless of value.
+    fn write_u64_wide(&mut self, u: u64) -> Result<()>;
+
+    /// Writes an `i8` as an int8 marker regardless of value.
+    fn write_i8_wide(&mut self, i: i8) -> Result<()>;
+
+    /// Writes an `i16` as an int16 marker regardless of value.
+    fn write_i16_wide(&mut self, i: i16) -> Result<()>;
+
+    /// Writes an `i32` as an int32 marker regardless of value.
+    fn write_i32_wide(&mut self, i: i32) -> Result<()>;
+
+    /// Writes an `i64` as an int64 marker regardless of value.
+    fn write_i64_wide(&mut self, i: i64) -> Result<()>;
+
     /// Writes a 32-bit floating-point number.
     fn write_f32(&mut self, f: f32) -> Result<()>;
 
@@ -363,6 +387,74 @@ impl<'a> Write for SliceWriter<'a> {
                 Ok(())
             }
         }
+    }
+
+    #[inline(always)]
+    fn write_u8_wide(&mut self, u: u8) -> Result<()> {
+        let buf = self.take_array::<2>()?;
+        *buf = [UINT8_MARKER, u];
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_u16_wide(&mut self, u: u16) -> Result<()> {
+        let buf = self.take_array::<3>()?;
+        let [head, tail @ ..] = buf;
+        *head = UINT16_MARKER;
+        *tail = u.to_be_bytes();
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_u32_wide(&mut self, u: u32) -> Result<()> {
+        let buf = self.take_array::<5>()?;
+        let [head, tail @ ..] = buf;
+        *head = UINT32_MARKER;
+        *tail = u.to_be_bytes();
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_u64_wide(&mut self, u: u64) -> Result<()> {
+        let buf = self.take_array::<9>()?;
+        let [head, tail @ ..] = buf;
+        *head = UINT64_MARKER;
+        *tail = u.to_be_bytes();
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_i8_wide(&mut self, i: i8) -> Result<()> {
+        let buf = self.take_array::<2>()?;
+        *buf = [INT8_MARKER, i as u8];
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_i16_wide(&mut self, i: i16) -> Result<()> {
+        let buf = self.take_array::<3>()?;
+        let [head, tail @ ..] = buf;
+        *head = INT16_MARKER;
+        *tail = i.to_be_bytes();
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_i32_wide(&mut self, i: i32) -> Result<()> {
+        let buf = self.take_array::<5>()?;
+        let [head, tail @ ..] = buf;
+        *head = INT32_MARKER;
+        *tail = i.to_be_bytes();
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_i64_wide(&mut self, i: i64) -> Result<()> {
+        let buf = self.take_array::<9>()?;
+        let [head, tail @ ..] = buf;
+        *head = INT64_MARKER;
+        *tail = i.to_be_bytes();
+        Ok(())
     }
 
     #[inline(always)]
@@ -1000,6 +1092,108 @@ impl Write for VecWriter {
     }
 
     #[inline(always)]
+    fn write_u8_wide(&mut self, u: u8) -> Result<()> {
+        self.buffer.reserve(2);
+        unsafe {
+            let ptr = self.buffer.as_mut_ptr().add(self.buffer.len());
+            *ptr = UINT8_MARKER;
+            *ptr.add(1) = u;
+            self.buffer.set_len(self.buffer.len() + 2);
+        }
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_u16_wide(&mut self, u: u16) -> Result<()> {
+        self.buffer.reserve(3);
+        unsafe {
+            let ptr = self.buffer.as_mut_ptr().add(self.buffer.len());
+            *ptr = UINT16_MARKER;
+            ptr.add(1)
+                .copy_from_nonoverlapping(u.to_be_bytes().as_ptr(), 2);
+            self.buffer.set_len(self.buffer.len() + 3);
+        }
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_u32_wide(&mut self, u: u32) -> Result<()> {
+        self.buffer.reserve(5);
+        unsafe {
+            let ptr = self.buffer.as_mut_ptr().add(self.buffer.len());
+            *ptr = UINT32_MARKER;
+            ptr.add(1)
+                .copy_from_nonoverlapping(u.to_be_bytes().as_ptr(), 4);
+            self.buffer.set_len(self.buffer.len() + 5);
+        }
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_u64_wide(&mut self, u: u64) -> Result<()> {
+        self.buffer.reserve(9);
+        unsafe {
+            let ptr = self.buffer.as_mut_ptr().add(self.buffer.len());
+            *ptr = UINT64_MARKER;
+            ptr.add(1)
+                .copy_from_nonoverlapping(u.to_be_bytes().as_ptr(), 8);
+            self.buffer.set_len(self.buffer.len() + 9);
+        }
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_i8_wide(&mut self, i: i8) -> Result<()> {
+        self.buffer.reserve(2);
+        unsafe {
+            let ptr = self.buffer.as_mut_ptr().add(self.buffer.len());
+            *ptr = INT8_MARKER;
+            *ptr.add(1) = i as u8;
+            self.buffer.set_len(self.buffer.len() + 2);
+        }
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_i16_wide(&mut self, i: i16) -> Result<()> {
+        self.buffer.reserve(3);
+        unsafe {
+            let ptr = self.buffer.as_mut_ptr().add(self.buffer.len());
+            *ptr = INT16_MARKER;
+            ptr.add(1)
+                .copy_from_nonoverlapping(i.to_be_bytes().as_ptr(), 2);
+            self.buffer.set_len(self.buffer.len() + 3);
+        }
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_i32_wide(&mut self, i: i32) -> Result<()> {
+        self.buffer.reserve(5);
+        unsafe {
+            let ptr = self.buffer.as_mut_ptr().add(self.buffer.len());
+            *ptr = INT32_MARKER;
+            ptr.add(1)
+                .copy_from_nonoverlapping(i.to_be_bytes().as_ptr(), 4);
+            self.buffer.set_len(self.buffer.len() + 5);
+        }
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_i64_wide(&mut self, i: i64) -> Result<()> {
+        self.buffer.reserve(9);
+        unsafe {
+            let ptr = self.buffer.as_mut_ptr().add(self.buffer.len());
+            *ptr = INT64_MARKER;
+            ptr.add(1)
+                .copy_from_nonoverlapping(i.to_be_bytes().as_ptr(), 8);
+            self.buffer.set_len(self.buffer.len() + 9);
+        }
+        Ok(())
+    }
+
+    #[inline(always)]
     fn write_f32(&mut self, f: f32) -> Result<()> {
         self.buffer.reserve(5);
         unsafe {
@@ -1596,6 +1790,80 @@ impl<W: std::io::Write> Write for IOWriter<W> {
                 Ok(())
             }
         }
+    }
+
+    #[inline(always)]
+    fn write_u8_wide(&mut self, u: u8) -> Result<()> {
+        self.write_all(&[UINT8_MARKER, u])?;
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_u16_wide(&mut self, u: u16) -> Result<()> {
+        let b = u.to_be_bytes();
+        self.write_all(&[UINT16_MARKER, b[0], b[1]])?;
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_u32_wide(&mut self, u: u32) -> Result<()> {
+        let b = u.to_be_bytes();
+        self.write_all(&[UINT32_MARKER, b[0], b[1], b[2], b[3]])?;
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_u64_wide(&mut self, u: u64) -> Result<()> {
+        let b = u.to_be_bytes();
+        self.write_all(&[
+            UINT64_MARKER,
+            b[0],
+            b[1],
+            b[2],
+            b[3],
+            b[4],
+            b[5],
+            b[6],
+            b[7],
+        ])?;
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_i8_wide(&mut self, i: i8) -> Result<()> {
+        self.write_all(&[INT8_MARKER, i as u8])?;
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_i16_wide(&mut self, i: i16) -> Result<()> {
+        let b = i.to_be_bytes();
+        self.write_all(&[INT16_MARKER, b[0], b[1]])?;
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_i32_wide(&mut self, i: i32) -> Result<()> {
+        let b = i.to_be_bytes();
+        self.write_all(&[INT32_MARKER, b[0], b[1], b[2], b[3]])?;
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn write_i64_wide(&mut self, i: i64) -> Result<()> {
+        let b = i.to_be_bytes();
+        self.write_all(&[
+            INT64_MARKER,
+            b[0],
+            b[1],
+            b[2],
+            b[3],
+            b[4],
+            b[5],
+            b[6],
+            b[7],
+        ])?;
+        Ok(())
     }
 
     #[inline(always)]
