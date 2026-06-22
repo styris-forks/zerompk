@@ -744,3 +744,75 @@ impl ToMessagePack for chrono::NaiveDateTime {
         writer.write_timestamp(utc.timestamp(), utc.timestamp_subsec_nanos())
     }
 }
+
+// -------------------------------------------------------------------------------
+// bytes types
+// -------------------------------------------------------------------------------
+
+#[cfg(feature = "bytes")]
+impl<'a> FromMessagePack<'a> for bytes::Bytes {
+    #[inline(always)]
+    fn read<R: Read<'a>>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok(bytes::Bytes::from(reader.read_binary()?.into_owned()))
+    }
+}
+
+#[cfg(feature = "bytes")]
+impl ToMessagePack for bytes::Bytes {
+    #[inline(always)]
+    fn write<W: Write>(&self, writer: &mut W) -> crate::Result<()> {
+        writer.write_binary(self.as_ref())
+    }
+}
+
+#[cfg(feature = "bytes")]
+impl<'a> FromMessagePack<'a> for bytes::BytesMut {
+    #[inline(always)]
+    fn read<R: Read<'a>>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok(bytes::BytesMut::from(reader.read_binary()?.as_ref()))
+    }
+}
+
+#[cfg(feature = "bytes")]
+impl ToMessagePack for bytes::BytesMut {
+    #[inline(always)]
+    fn write<W: Write>(&self, writer: &mut W) -> crate::Result<()> {
+        writer.write_binary(self.as_ref())
+    }
+}
+
+// -------------------------------------------------------------------------------
+// uuid types
+// -------------------------------------------------------------------------------
+
+#[cfg(feature = "uuid")]
+impl<'a> FromMessagePack<'a> for uuid::Uuid {
+    #[inline(always)]
+    fn read<R: Read<'a>>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        let bytes = reader.read_binary()?;
+        let arr: [u8; 16] = bytes.as_ref().try_into().map_err(|_| {
+            crate::Error::ArrayLengthMismatch {
+                expected: 16,
+                actual: bytes.len(),
+            }
+        })?;
+        Ok(uuid::Uuid::from_bytes(arr))
+    }
+}
+
+#[cfg(feature = "uuid")]
+impl ToMessagePack for uuid::Uuid {
+    #[inline(always)]
+    fn write<W: Write>(&self, writer: &mut W) -> crate::Result<()> {
+        writer.write_binary(self.as_bytes())
+    }
+}

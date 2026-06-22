@@ -650,7 +650,14 @@ fn should_use_bin(ty: &Type, cfg: Option<&FieldConfig>) -> bool {
     if !is_bin_type(ty) {
         return false;
     }
-    cfg.and_then(|v| v.as_bytes).unwrap_or(true)
+    // Vec<u8> defaults to array when `default-vec-u8-as-array` is enabled; &[u8] and
+    // Cow<[u8]> always default to bin. An explicit `#[zerompk(as_bytes = ...)]` wins.
+    let default = if is_vec_u8(ty) {
+        cfg!(not(feature = "default-vec-u8-as-array"))
+    } else {
+        true
+    };
+    cfg.and_then(|v| v.as_bytes).unwrap_or(default)
 }
 
 fn build_read_expr(ty: &Type, cfg: Option<&FieldConfig>) -> proc_macro2::TokenStream {

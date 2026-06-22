@@ -15,7 +15,10 @@ default = ["std"]
 std = []
 derive = ["dep:zerompk_derive"]
 default-as-map = ["derive", "zerompk_derive/default-as-map"]
+default-vec-u8-as-array = ["derive", "zerompk_derive/default-vec-u8-as-array"]
 chrono = ["dep:chrono"]
+bytes = ["dep:bytes"]
+uuid = ["dep:uuid"]
 preserve-int-width = []
 
 [dependencies]
@@ -23,6 +26,8 @@ zerompk_derive = { version = "0.6.0", path = "../zerompk_derive", optional = tru
 chrono = { version = "0.4", default-features = false, features = [
     "alloc",
 ], optional = true }
+bytes = { version = "1", default-features = false, optional = true }
+uuid = { version = "1", default-features = false, optional = true }
 
 [dev-dependencies]
 rmp-serde = "1.3.1"

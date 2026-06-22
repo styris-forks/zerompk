@@ -13,6 +13,7 @@ proc-macro = true
 [features]
 default = []
 default-as-map = []
+default-vec-u8-as-array = []
 
 [dependencies]
 proc-macro2 = "1"
