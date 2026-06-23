@@ -281,6 +281,16 @@ impl<'de> Read<'de> for SliceReader<'de> {
                 let byte = self.take_byte()?;
                 Ok(byte)
             }
+            // int 8
+            INT8_MARKER => {
+                let value = self.take_byte()? as i8;
+                if value >= 0 {
+                    Ok(value as u8)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
             _ => {
                 cold_path();
                 self.pos -= 1;
@@ -304,6 +314,27 @@ impl<'de> Read<'de> for SliceReader<'de> {
             UINT16_MARKER => {
                 let bytes = self.take_array::<2>()?;
                 Ok(u16::from_be_bytes(*bytes))
+            }
+            // int 8
+            INT8_MARKER => {
+                let value = self.take_byte()? as i8;
+                if value >= 0 {
+                    Ok(value as u16)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
+            // int 16
+            INT16_MARKER => {
+                let bytes = self.take_array::<2>()?;
+                let value = i16::from_be_bytes(*bytes);
+                if value >= 0 {
+                    Ok(value as u16)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
             }
             _ => {
                 cold_path();
@@ -333,6 +364,38 @@ impl<'de> Read<'de> for SliceReader<'de> {
             UINT32_MARKER => {
                 let bytes = self.take_array::<4>()?;
                 Ok(u32::from_be_bytes(*bytes))
+            }
+            // int 8
+            INT8_MARKER => {
+                let value = self.take_byte()? as i8;
+                if value >= 0 {
+                    Ok(value as u32)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
+            // int 16
+            INT16_MARKER => {
+                let bytes = self.take_array::<2>()?;
+                let value = i16::from_be_bytes(*bytes);
+                if value >= 0 {
+                    Ok(value as u32)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
+            // int 32
+            INT32_MARKER => {
+                let bytes = self.take_array::<4>()?;
+                let value = i32::from_be_bytes(*bytes);
+                if value >= 0 {
+                    Ok(value as u32)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
             }
             _ => {
                 cold_path();
@@ -368,6 +431,49 @@ impl<'de> Read<'de> for SliceReader<'de> {
                 let bytes = self.take_array::<8>()?;
                 Ok(u64::from_be_bytes(*bytes))
             }
+            // int 8
+            INT8_MARKER => {
+                let value = self.take_byte()? as i8;
+                if value >= 0 {
+                    Ok(value as u64)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
+            // int 16
+            INT16_MARKER => {
+                let bytes = self.take_array::<2>()?;
+                let value = i16::from_be_bytes(*bytes);
+                if value >= 0 {
+                    Ok(value as u64)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
+            // int 32
+            INT32_MARKER => {
+                let bytes = self.take_array::<4>()?;
+                let value = i32::from_be_bytes(*bytes);
+                if value >= 0 {
+                    Ok(value as u64)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
+            // int 64
+            INT64_MARKER => {
+                let bytes = self.take_array::<8>()?;
+                let value = u64::from_be_bytes(*bytes);
+                if value >> 63 == 0 {
+                    Ok(value)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
             _ => {
                 cold_path();
                 self.pos -= 1;
@@ -388,6 +494,16 @@ impl<'de> Read<'de> for SliceReader<'de> {
             INT8_MARKER => {
                 let byte = self.take_byte()?;
                 Ok(byte as i8)
+            }
+            // uint 8
+            UINT8_MARKER => {
+                let value = self.take_byte()?;
+                if value <= i8::MAX as u8 {
+                    Ok(value as i8)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
             }
             _ => {
                 cold_path();
@@ -414,6 +530,22 @@ impl<'de> Read<'de> for SliceReader<'de> {
             INT16_MARKER => {
                 let bytes = self.take_array::<2>()?;
                 Ok(i16::from_be_bytes(*bytes))
+            }
+            // uint 8
+            UINT8_MARKER => {
+                let value = self.take_byte()?;
+                Ok(value as i16)
+            }
+            // uint 16
+            UINT16_MARKER => {
+                let bytes = self.take_array::<2>()?;
+                let value = u16::from_be_bytes(*bytes);
+                if value <= i16::MAX as u16 {
+                    Ok(value as i16)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
             }
             _ => {
                 cold_path();
@@ -445,6 +577,27 @@ impl<'de> Read<'de> for SliceReader<'de> {
             INT32_MARKER => {
                 let bytes = self.take_array::<4>()?;
                 Ok(i32::from_be_bytes(*bytes))
+            }
+            // uint 8
+            UINT8_MARKER => {
+                let value = self.take_byte()?;
+                Ok(value as i32)
+            }
+            // uint 16
+            UINT16_MARKER => {
+                let bytes = self.take_array::<2>()?;
+                Ok(u16::from_be_bytes(*bytes) as i32)
+            }
+            // uint 32
+            UINT32_MARKER => {
+                let bytes = self.take_array::<4>()?;
+                let value = u32::from_be_bytes(*bytes);
+                if value <= i32::MAX as u32 {
+                    Ok(value as i32)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
             }
             _ => {
                 cold_path();
@@ -481,6 +634,32 @@ impl<'de> Read<'de> for SliceReader<'de> {
             INT64_MARKER => {
                 let bytes = self.take_array::<8>()?;
                 Ok(i64::from_be_bytes(*bytes))
+            }
+            // uint 8
+            UINT8_MARKER => {
+                let value = self.take_byte()?;
+                Ok(value as i64)
+            }
+            // uint 16
+            UINT16_MARKER => {
+                let bytes = self.take_array::<2>()?;
+                Ok(u16::from_be_bytes(*bytes) as i64)
+            }
+            // uint 32
+            UINT32_MARKER => {
+                let bytes = self.take_array::<4>()?;
+                Ok(u32::from_be_bytes(*bytes) as i64)
+            }
+            // uint 64
+            UINT64_MARKER => {
+                let bytes = self.take_array::<8>()?;
+                let value = u64::from_be_bytes(*bytes);
+                if value <= i64::MAX as u64 {
+                    Ok(value as i64)
+                } else {
+                    cold_path();
+                    Err(Error::InvalidMarker(byte))
+                }
             }
             _ => {
                 cold_path();
@@ -1141,6 +1320,14 @@ impl<'de, R: std::io::Read> Read<'de> for IOReader<R> {
                 let value = self.read_byte()?;
                 Ok(value)
             }
+            INT8_MARKER => {
+                let value = self.read_byte()? as i8;
+                if value >= 0 {
+                    Ok(value as u8)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
             _ => Err(Error::InvalidMarker(byte)),
         }
     }
@@ -1158,6 +1345,24 @@ impl<'de, R: std::io::Read> Read<'de> for IOReader<R> {
                 let mut buf = [0u8; 2];
                 self.read_exact(&mut buf)?;
                 Ok(u16::from_be_bytes(buf))
+            }
+            INT8_MARKER => {
+                let value = self.read_byte()? as i8;
+                if value >= 0 {
+                    Ok(value as u16)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
+            INT16_MARKER => {
+                let mut buf = [0u8; 2];
+                self.read_exact(&mut buf)?;
+                let value = i16::from_be_bytes(buf);
+                if value >= 0 {
+                    Ok(value as u16)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
             }
             _ => Err(Error::InvalidMarker(byte)),
         }
@@ -1181,6 +1386,34 @@ impl<'de, R: std::io::Read> Read<'de> for IOReader<R> {
                 let mut buf = [0u8; 4];
                 self.read_exact(&mut buf)?;
                 Ok(u32::from_be_bytes(buf))
+            }
+            INT8_MARKER => {
+                let value = self.read_byte()? as i8;
+                if value >= 0 {
+                    Ok(value as u32)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
+            INT16_MARKER => {
+                let mut buf = [0u8; 2];
+                self.read_exact(&mut buf)?;
+                let value = i16::from_be_bytes(buf);
+                if value >= 0 {
+                    Ok(value as u32)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
+            INT32_MARKER => {
+                let mut buf = [0u8; 4];
+                self.read_exact(&mut buf)?;
+                let value = i32::from_be_bytes(buf);
+                if value >= 0 {
+                    Ok(value as u32)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
             }
             _ => Err(Error::InvalidMarker(byte)),
         }
@@ -1210,6 +1443,44 @@ impl<'de, R: std::io::Read> Read<'de> for IOReader<R> {
                 self.read_exact(&mut buf)?;
                 Ok(u64::from_be_bytes(buf))
             }
+            INT8_MARKER => {
+                let value = self.read_byte()? as i8;
+                if value >= 0 {
+                    Ok(value as u64)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
+            INT16_MARKER => {
+                let mut buf = [0u8; 2];
+                self.read_exact(&mut buf)?;
+                let value = i16::from_be_bytes(buf);
+                if value >= 0 {
+                    Ok(value as u64)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
+            INT32_MARKER => {
+                let mut buf = [0u8; 4];
+                self.read_exact(&mut buf)?;
+                let value = i32::from_be_bytes(buf);
+                if value >= 0 {
+                    Ok(value as u64)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
+            INT64_MARKER => {
+                let mut buf = [0u8; 8];
+                self.read_exact(&mut buf)?;
+                let value = u64::from_be_bytes(buf);
+                if value >> 63 == 0 {
+                    Ok(value)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
             _ => Err(Error::InvalidMarker(byte)),
         }
     }
@@ -1223,6 +1494,14 @@ impl<'de, R: std::io::Read> Read<'de> for IOReader<R> {
             INT8_MARKER => {
                 let value = self.read_byte()?;
                 Ok(value as i8)
+            }
+            UINT8_MARKER => {
+                let value = self.read_byte()?;
+                if value <= i8::MAX as u8 {
+                    Ok(value as i8)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
             }
             _ => Err(Error::InvalidMarker(byte)),
         }
@@ -1242,6 +1521,20 @@ impl<'de, R: std::io::Read> Read<'de> for IOReader<R> {
                 let mut buf = [0u8; 2];
                 self.read_exact(&mut buf)?;
                 Ok(i16::from_be_bytes(buf))
+            }
+            UINT8_MARKER => {
+                let value = self.read_byte()?;
+                Ok(value as i16)
+            }
+            UINT16_MARKER => {
+                let mut buf = [0u8; 2];
+                self.read_exact(&mut buf)?;
+                let value = u16::from_be_bytes(buf);
+                if value <= i16::MAX as u16 {
+                    Ok(value as i16)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
             }
             _ => Err(Error::InvalidMarker(byte)),
         }
@@ -1267,6 +1560,25 @@ impl<'de, R: std::io::Read> Read<'de> for IOReader<R> {
                 self.read_exact(&mut buf)?;
                 Ok(i32::from_be_bytes(buf))
             }
+            UINT8_MARKER => {
+                let value = self.read_byte()?;
+                Ok(value as i32)
+            }
+            UINT16_MARKER => {
+                let mut buf = [0u8; 2];
+                self.read_exact(&mut buf)?;
+                Ok(u16::from_be_bytes(buf) as i32)
+            }
+            UINT32_MARKER => {
+                let mut buf = [0u8; 4];
+                self.read_exact(&mut buf)?;
+                let value = u32::from_be_bytes(buf);
+                if value <= i32::MAX as u32 {
+                    Ok(value as i32)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
+            }
             _ => Err(Error::InvalidMarker(byte)),
         }
     }
@@ -1290,6 +1602,30 @@ impl<'de, R: std::io::Read> Read<'de> for IOReader<R> {
                 let mut buf = [0u8; 4];
                 self.read_exact(&mut buf)?;
                 Ok(i32::from_be_bytes(buf) as i64)
+            }
+            UINT8_MARKER => {
+                let value = self.read_byte()?;
+                Ok(value as i64)
+            }
+            UINT16_MARKER => {
+                let mut buf = [0u8; 2];
+                self.read_exact(&mut buf)?;
+                Ok(u16::from_be_bytes(buf) as i64)
+            }
+            UINT32_MARKER => {
+                let mut buf = [0u8; 4];
+                self.read_exact(&mut buf)?;
+                Ok(u32::from_be_bytes(buf) as i64)
+            }
+            UINT64_MARKER => {
+                let mut buf = [0u8; 8];
+                self.read_exact(&mut buf)?;
+                let value = u64::from_be_bytes(buf);
+                if value <= i64::MAX as u64 {
+                    Ok(value as i64)
+                } else {
+                    Err(Error::InvalidMarker(byte))
+                }
             }
             INT64_MARKER => {
                 let mut buf = [0u8; 8];
