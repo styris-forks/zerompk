@@ -447,6 +447,11 @@ macro_rules! impl_read_methods {
                     let $byte_reader = &mut *self;
                     $read_byte
                 }),
+                INT8_MARKER => u8::try_from({
+                    let $byte_reader = &mut *self;
+                    $read_byte
+                } as i8)
+                .map_err(|_| Error::InvalidMarker(marker)),
                 _ => {
                     let $reader = &mut *self;
                     let $bad_marker = marker;
@@ -471,6 +476,16 @@ macro_rules! impl_read_methods {
                     let $reader_2 = &mut *self;
                     $read_2
                 })),
+                INT8_MARKER => u16::try_from({
+                    let $byte_reader = &mut *self;
+                    $read_byte
+                } as i8)
+                .map_err(|_| Error::InvalidMarker(marker)),
+                INT16_MARKER => u16::try_from(i16::from_be_bytes({
+                    let $reader_2 = &mut *self;
+                    $read_2
+                }))
+                .map_err(|_| Error::InvalidMarker(marker)),
                 _ => {
                     let $reader = &mut *self;
                     let $bad_marker = marker;
@@ -499,6 +514,21 @@ macro_rules! impl_read_methods {
                     let $reader_4 = &mut *self;
                     $read_4
                 })),
+                INT8_MARKER => u32::try_from({
+                    let $byte_reader = &mut *self;
+                    $read_byte
+                } as i8)
+                .map_err(|_| Error::InvalidMarker(marker)),
+                INT16_MARKER => u32::try_from(i16::from_be_bytes({
+                    let $reader_2 = &mut *self;
+                    $read_2
+                }))
+                .map_err(|_| Error::InvalidMarker(marker)),
+                INT32_MARKER => u32::try_from(i32::from_be_bytes({
+                    let $reader_4 = &mut *self;
+                    $read_4
+                }))
+                .map_err(|_| Error::InvalidMarker(marker)),
                 _ => {
                     let $reader = &mut *self;
                     let $bad_marker = marker;
@@ -531,6 +561,26 @@ macro_rules! impl_read_methods {
                     let $reader_8 = &mut *self;
                     $read_8
                 })),
+                INT8_MARKER => u64::try_from({
+                    let $byte_reader = &mut *self;
+                    $read_byte
+                } as i8)
+                .map_err(|_| Error::InvalidMarker(marker)),
+                INT16_MARKER => u64::try_from(i16::from_be_bytes({
+                    let $reader_2 = &mut *self;
+                    $read_2
+                }))
+                .map_err(|_| Error::InvalidMarker(marker)),
+                INT32_MARKER => u64::try_from(i32::from_be_bytes({
+                    let $reader_4 = &mut *self;
+                    $read_4
+                }))
+                .map_err(|_| Error::InvalidMarker(marker)),
+                INT64_MARKER => u64::try_from(i64::from_be_bytes({
+                    let $reader_8 = &mut *self;
+                    $read_8
+                }))
+                .map_err(|_| Error::InvalidMarker(marker)),
                 _ => {
                     let $reader = &mut *self;
                     let $bad_marker = marker;
@@ -553,6 +603,11 @@ macro_rules! impl_read_methods {
                     let $byte_reader = &mut *self;
                     $read_byte
                 } as i8),
+                UINT8_MARKER => i8::try_from({
+                    let $byte_reader = &mut *self;
+                    $read_byte
+                })
+                .map_err(|_| Error::InvalidMarker(marker)),
                 _ => {
                     let $reader = &mut *self;
                     let $bad_marker = marker;
@@ -578,6 +633,15 @@ macro_rules! impl_read_methods {
                     let $reader_2 = &mut *self;
                     $read_2
                 })),
+                UINT8_MARKER => Ok({
+                    let $byte_reader = &mut *self;
+                    $read_byte
+                } as i16),
+                UINT16_MARKER => i16::try_from(u16::from_be_bytes({
+                    let $reader_2 = &mut *self;
+                    $read_2
+                }))
+                .map_err(|_| Error::InvalidMarker(marker)),
                 _ => {
                     let $reader = &mut *self;
                     let $bad_marker = marker;
@@ -607,6 +671,19 @@ macro_rules! impl_read_methods {
                     let $reader_4 = &mut *self;
                     $read_4
                 })),
+                UINT8_MARKER => Ok({
+                    let $byte_reader = &mut *self;
+                    $read_byte
+                } as i32),
+                UINT16_MARKER => Ok(u16::from_be_bytes({
+                    let $reader_2 = &mut *self;
+                    $read_2
+                }) as i32),
+                UINT32_MARKER => i32::try_from(u32::from_be_bytes({
+                    let $reader_4 = &mut *self;
+                    $read_4
+                }))
+                .map_err(|_| Error::InvalidMarker(marker)),
                 _ => {
                     let $reader = &mut *self;
                     let $bad_marker = marker;
@@ -640,6 +717,23 @@ macro_rules! impl_read_methods {
                     let $reader_8 = &mut *self;
                     $read_8
                 })),
+                UINT8_MARKER => Ok({
+                    let $byte_reader = &mut *self;
+                    $read_byte
+                } as i64),
+                UINT16_MARKER => Ok(u16::from_be_bytes({
+                    let $reader_2 = &mut *self;
+                    $read_2
+                }) as i64),
+                UINT32_MARKER => Ok(u32::from_be_bytes({
+                    let $reader_4 = &mut *self;
+                    $read_4
+                }) as i64),
+                UINT64_MARKER => i64::try_from(u64::from_be_bytes({
+                    let $reader_8 = &mut *self;
+                    $read_8
+                }))
+                .map_err(|_| Error::InvalidMarker(marker)),
                 _ => {
                     let $reader = &mut *self;
                     let $bad_marker = marker;

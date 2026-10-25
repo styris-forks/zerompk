@@ -658,7 +658,19 @@ fn primitive_slice_method(ty: &Type) -> Option<Ident> {
         return None;
     }
 
-    let method = match path.path.get_ident()?.to_string().as_str() {
+    let ident = path.path.get_ident()?.to_string();
+    // The slice writers use the compact integer encoding, so with `preserve-int-width`
+    // integer sequences go through each element's own `write` instead.
+    if cfg!(feature = "preserve-int-width")
+        && matches!(
+            ident.as_str(),
+            "u8" | "u16" | "u32" | "u64" | "i8" | "i16" | "i32" | "i64"
+        )
+    {
+        return None;
+    }
+
+    let method = match ident.as_str() {
         "bool" => "write_boolean_slice",
         "u8" => "write_u8_slice",
         "u16" => "write_u16_slice",
@@ -710,7 +722,14 @@ fn should_use_bin(ty: &Type, cfg: Option<&FieldConfig>) -> bool {
     if !is_bin_type(ty) {
         return false;
     }
-    cfg.and_then(|v| v.as_bytes).unwrap_or(true)
+    // Vec<u8> defaults to array when `default-vec-u8-as-array` is enabled; &[u8] and
+    // Cow<[u8]> always default to bin. An explicit `#[zerompk(as_bytes = ...)]` wins.
+    let default = if is_vec_u8(ty) {
+        cfg!(not(feature = "default-vec-u8-as-array"))
+    } else {
+        true
+    };
+    cfg.and_then(|v| v.as_bytes).unwrap_or(default)
 }
 
 fn encode_static_string(value: &LitStr) -> proc_macro2::Literal {

@@ -108,6 +108,7 @@ impl_scalar!(
     |_| 1,
     1
 );
+#[cfg(not(feature = "preserve-int-width"))]
 impl_scalar!(
     i8,
     write_i8,
@@ -116,6 +117,7 @@ impl_scalar!(
     |v: i8| if (-32..=127).contains(&v) { 1 } else { 2 },
     2
 );
+#[cfg(not(feature = "preserve-int-width"))]
 impl_scalar!(
     i16,
     write_i16,
@@ -130,6 +132,7 @@ impl_scalar!(
     },
     3
 );
+#[cfg(not(feature = "preserve-int-width"))]
 impl_scalar!(
     i32,
     write_i32,
@@ -146,6 +149,7 @@ impl_scalar!(
     },
     5
 );
+#[cfg(not(feature = "preserve-int-width"))]
 impl_scalar!(
     i64,
     write_i64,
@@ -164,6 +168,7 @@ impl_scalar!(
     },
     9
 );
+#[cfg(not(feature = "preserve-int-width"))]
 impl_scalar!(
     u8,
     write_u8,
@@ -172,6 +177,7 @@ impl_scalar!(
     |v: u8| if v <= 127 { 1 } else { 2 },
     2
 );
+#[cfg(not(feature = "preserve-int-width"))]
 impl_scalar!(
     u16,
     write_u16,
@@ -186,6 +192,7 @@ impl_scalar!(
     },
     3
 );
+#[cfg(not(feature = "preserve-int-width"))]
 impl_scalar!(
     u32,
     write_u32,
@@ -202,6 +209,7 @@ impl_scalar!(
     },
     5
 );
+#[cfg(not(feature = "preserve-int-width"))]
 impl_scalar!(
     u64,
     write_u64,
@@ -223,6 +231,59 @@ impl_scalar!(
 impl_scalar!(f32, write_f32, write_f32_slice, read_f32, |_| 5, 5);
 impl_scalar!(f64, write_f64, write_f64_slice, read_f64, |_| 9, 9);
 
+/// Integers always written with the marker of their declared width. There's no slice
+/// override, so sequences fall back to writing each element on its own.
+#[cfg(feature = "preserve-int-width")]
+macro_rules! impl_wide_int {
+    ($ty:ty, $write_fn:ident, $read_fn:ident, $size:expr) => {
+        impl<'a> FromMessagePack<'a> for $ty {
+            #[inline(always)]
+            fn read<R: Read<'a>>(reader: &mut R) -> crate::Result<Self>
+            where
+                Self: Sized,
+            {
+                reader.$read_fn()
+            }
+        }
+
+        impl ToMessagePack for $ty {
+            #[inline(always)]
+            fn write<W: Write>(&self, writer: &mut W) -> crate::Result<()> {
+                writer.$write_fn(*self)
+            }
+
+            #[inline(always)]
+            fn size_hint(&self) -> Option<crate::TrustedSizeHint> {
+                // SAFETY: the wide encoding is always exactly one marker plus the value's bytes.
+                Some(unsafe { crate::TrustedSizeHint::new_unchecked($size) })
+            }
+
+            #[inline(always)]
+            fn max_size() -> Option<crate::TrustedSizeHint> {
+                // SAFETY: same fixed size as `size_hint`.
+                Some(unsafe { crate::TrustedSizeHint::new_unchecked($size) })
+            }
+        }
+    };
+}
+
+#[cfg(feature = "preserve-int-width")]
+impl_wide_int!(i8, write_i8_wide, read_i8, 2);
+#[cfg(feature = "preserve-int-width")]
+impl_wide_int!(i16, write_i16_wide, read_i16, 3);
+#[cfg(feature = "preserve-int-width")]
+impl_wide_int!(i32, write_i32_wide, read_i32, 5);
+#[cfg(feature = "preserve-int-width")]
+impl_wide_int!(i64, write_i64_wide, read_i64, 9);
+#[cfg(feature = "preserve-int-width")]
+impl_wide_int!(u8, write_u8_wide, read_u8, 2);
+#[cfg(feature = "preserve-int-width")]
+impl_wide_int!(u16, write_u16_wide, read_u16, 3);
+#[cfg(feature = "preserve-int-width")]
+impl_wide_int!(u32, write_u32_wide, read_u32, 5);
+#[cfg(feature = "preserve-int-width")]
+impl_wide_int!(u64, write_u64_wide, read_u64, 9);
+
 impl<'a> FromMessagePack<'a> for usize {
     #[inline(always)]
     fn read<R: Read<'a>>(reader: &mut R) -> crate::Result<Self>
@@ -241,9 +302,9 @@ impl ToMessagePack for usize {
     #[inline(always)]
     fn write<W: Write>(&self, writer: &mut W) -> crate::Result<()> {
         if usize::BITS <= 32 {
-            writer.write_u32(*self as u32)
+            (*self as u32).write(writer)
         } else {
-            writer.write_u64(*self as u64)
+            (*self as u64).write(writer)
         }
     }
 
@@ -282,9 +343,9 @@ impl ToMessagePack for isize {
     #[inline(always)]
     fn write<W: Write>(&self, writer: &mut W) -> crate::Result<()> {
         if isize::BITS <= 32 {
-            writer.write_i32(*self as i32)
+            (*self as i32).write(writer)
         } else {
-            writer.write_i64(*self as i64)
+            (*self as i64).write(writer)
         }
     }
 
@@ -1116,5 +1177,77 @@ impl ToMessagePack for chrono::NaiveDateTime {
     fn write<W: Write>(&self, writer: &mut W) -> crate::Result<()> {
         let utc = self.and_utc();
         writer.write_timestamp(utc.timestamp(), utc.timestamp_subsec_nanos())
+    }
+}
+
+// -------------------------------------------------------------------------------
+// bytes types
+// -------------------------------------------------------------------------------
+
+#[cfg(feature = "bytes")]
+impl<'a> FromMessagePack<'a> for bytes::Bytes {
+    #[inline(always)]
+    fn read<R: Read<'a>>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok(bytes::Bytes::from(reader.read_binary()?.into_owned()))
+    }
+}
+
+#[cfg(feature = "bytes")]
+impl ToMessagePack for bytes::Bytes {
+    #[inline(always)]
+    fn write<W: Write>(&self, writer: &mut W) -> crate::Result<()> {
+        writer.write_binary(self.as_ref())
+    }
+}
+
+#[cfg(feature = "bytes")]
+impl<'a> FromMessagePack<'a> for bytes::BytesMut {
+    #[inline(always)]
+    fn read<R: Read<'a>>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        Ok(bytes::BytesMut::from(reader.read_binary()?.as_ref()))
+    }
+}
+
+#[cfg(feature = "bytes")]
+impl ToMessagePack for bytes::BytesMut {
+    #[inline(always)]
+    fn write<W: Write>(&self, writer: &mut W) -> crate::Result<()> {
+        writer.write_binary(self.as_ref())
+    }
+}
+
+// -------------------------------------------------------------------------------
+// uuid types
+// -------------------------------------------------------------------------------
+
+#[cfg(feature = "uuid")]
+impl<'a> FromMessagePack<'a> for uuid::Uuid {
+    #[inline(always)]
+    fn read<R: Read<'a>>(reader: &mut R) -> crate::Result<Self>
+    where
+        Self: Sized,
+    {
+        let bytes = reader.read_binary()?;
+        let arr: [u8; 16] = bytes.as_ref().try_into().map_err(|_| {
+            crate::Error::ArrayLengthMismatch {
+                expected: 16,
+                actual: bytes.len(),
+            }
+        })?;
+        Ok(uuid::Uuid::from_bytes(arr))
+    }
+}
+
+#[cfg(feature = "uuid")]
+impl ToMessagePack for uuid::Uuid {
+    #[inline(always)]
+    fn write<W: Write>(&self, writer: &mut W) -> crate::Result<()> {
+        writer.write_binary(self.as_bytes())
     }
 }

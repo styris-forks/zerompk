@@ -257,6 +257,76 @@ macro_rules! impl_write_methods {
         }
 
         #[inline(always)]
+        fn write_u8_wide(&mut self, value: u8) -> Result<()> {
+            let bytes = [UINT8_MARKER, value];
+            let $writer = &mut *self;
+            let $data = bytes.as_slice();
+            $write
+        }
+
+        #[inline(always)]
+        fn write_u16_wide(&mut self, value: u16) -> Result<()> {
+            let [a, b] = value.to_be_bytes();
+            let bytes = [UINT16_MARKER, a, b];
+            let $writer = &mut *self;
+            let $data = bytes.as_slice();
+            $write
+        }
+
+        #[inline(always)]
+        fn write_u32_wide(&mut self, value: u32) -> Result<()> {
+            let [a, b, c, d] = value.to_be_bytes();
+            let bytes = [UINT32_MARKER, a, b, c, d];
+            let $writer = &mut *self;
+            let $data = bytes.as_slice();
+            $write
+        }
+
+        #[inline(always)]
+        fn write_u64_wide(&mut self, value: u64) -> Result<()> {
+            let [a, b, c, d, e, f, g, h] = value.to_be_bytes();
+            let bytes = [UINT64_MARKER, a, b, c, d, e, f, g, h];
+            let $writer = &mut *self;
+            let $data = bytes.as_slice();
+            $write
+        }
+
+        #[inline(always)]
+        fn write_i8_wide(&mut self, value: i8) -> Result<()> {
+            let bytes = [INT8_MARKER, value as u8];
+            let $writer = &mut *self;
+            let $data = bytes.as_slice();
+            $write
+        }
+
+        #[inline(always)]
+        fn write_i16_wide(&mut self, value: i16) -> Result<()> {
+            let [a, b] = value.to_be_bytes();
+            let bytes = [INT16_MARKER, a, b];
+            let $writer = &mut *self;
+            let $data = bytes.as_slice();
+            $write
+        }
+
+        #[inline(always)]
+        fn write_i32_wide(&mut self, value: i32) -> Result<()> {
+            let [a, b, c, d] = value.to_be_bytes();
+            let bytes = [INT32_MARKER, a, b, c, d];
+            let $writer = &mut *self;
+            let $data = bytes.as_slice();
+            $write
+        }
+
+        #[inline(always)]
+        fn write_i64_wide(&mut self, value: i64) -> Result<()> {
+            let [a, b, c, d, e, f, g, h] = value.to_be_bytes();
+            let bytes = [INT64_MARKER, a, b, c, d, e, f, g, h];
+            let $writer = &mut *self;
+            let $data = bytes.as_slice();
+            $write
+        }
+
+        #[inline(always)]
         fn write_f32(&mut self, value: f32) -> Result<()> {
             let [a, b, c, d] = value.to_be_bytes();
             let bytes = [FLOAT32_MARKER, a, b, c, d];

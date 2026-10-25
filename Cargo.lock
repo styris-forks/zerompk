@@ -294,6 +294,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
 
 [[package]]
+name = "uuid"
+version = "1.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a0e2d11620c50695fe12bbbfde96b3477fe606e7284c22d505c12ce51214514"
+
+[[package]]
 name = "wasm-bindgen"
 version = "0.2.114"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -401,6 +407,7 @@ dependencies = [
 name = "zerompk"
 version = "0.8.0"
 dependencies = [
+ "bytes",
  "chrono",
  "msgpacker",
  "rmp-serde",
@@ -408,6 +415,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
+ "uuid",
  "zerompk_derive",
 ]
 

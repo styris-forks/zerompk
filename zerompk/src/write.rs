@@ -284,6 +284,30 @@ pub trait Write {
         Ok(())
     }
 
+    /// Writes a `u8` as a uint8 marker regardless of value.
+    fn write_u8_wide(&mut self, u: u8) -> Result<()>;
+
+    /// Writes a `u16` as a uint16 marker regardless of value.
+    fn write_u16_wide(&mut self, u: u16) -> Result<()>;
+
+    /// Writes a `u32` as a uint32 marker regardless of value.
+    fn write_u32_wide(&mut self, u: u32) -> Result<()>;
+
+    /// Writes a `u64` as a uint64 marker regardless of value.
+    fn write_u64_wide(&mut self, u: u64) -> Result<()>;
+
+    /// Writes an `i8` as an int8 marker regardless of value.
+    fn write_i8_wide(&mut self, i: i8) -> Result<()>;
+
+    /// Writes an `i16` as an int16 marker regardless of value.
+    fn write_i16_wide(&mut self, i: i16) -> Result<()>;
+
+    /// Writes an `i32` as an int32 marker regardless of value.
+    fn write_i32_wide(&mut self, i: i32) -> Result<()>;
+
+    /// Writes an `i64` as an int64 marker regardless of value.
+    fn write_i64_wide(&mut self, i: i64) -> Result<()>;
+
     /// Writes a 32-bit floating-point number.
     fn write_f32(&mut self, f: f32) -> Result<()>;
 
