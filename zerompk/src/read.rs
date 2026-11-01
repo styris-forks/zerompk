@@ -108,10 +108,12 @@ pub trait Read<'de> {
     /// Reads a signed 64-bit integer from the input.
     fn read_i64(&mut self) -> Result<i64>;
 
-    /// Reads a 32-bit floating-point number from the input.
+    /// Reads a 32-bit floating-point number from the input. Like [`Read::read_f64`], it also
+    /// accepts a 64-bit float or any integer.
     fn read_f32(&mut self) -> Result<f32>;
 
-    /// Reads a 64-bit floating-point number from the input.
+    /// Reads a 64-bit floating-point number from the input. A 32-bit float or any integer is
+    /// accepted too, since encoders like msgpackr write whole numbers as integers.
     fn read_f64(&mut self) -> Result<f64>;
 
     /// Reads a timestamp from the input, returning the seconds and nanoseconds components.

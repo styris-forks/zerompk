@@ -381,9 +381,8 @@ impl<'de, R: std::io::BufRead> Read<'de> for BufReadReader<'_, R> {
 
     #[inline(always)]
     fn read_f32(&mut self) -> Result<f32> {
-        let marker = self.peek_marker()?;
-        if marker != FLOAT32_MARKER {
-            return Err(Error::InvalidMarker(marker));
+        if self.peek_marker()? != FLOAT32_MARKER {
+            return self.read_f64().map(|value| value as f32);
         }
         let b = self.take::<5>()?;
         Ok(f32::from_bits(u32::from_be_bytes([b[1], b[2], b[3], b[4]])))
@@ -391,14 +390,19 @@ impl<'de, R: std::io::BufRead> Read<'de> for BufReadReader<'_, R> {
 
     #[inline(always)]
     fn read_f64(&mut self) -> Result<f64> {
-        let marker = self.peek_marker()?;
-        if marker != FLOAT64_MARKER {
-            return Err(Error::InvalidMarker(marker));
+        match self.peek_marker()? {
+            FLOAT32_MARKER => self.read_f32().map(f64::from),
+            FLOAT64_MARKER => {
+                let b = self.take::<9>()?;
+                Ok(f64::from_bits(u64::from_be_bytes(
+                    b[1..].try_into().unwrap(),
+                )))
+            }
+            UINT8_MARKER | UINT16_MARKER | UINT32_MARKER | UINT64_MARKER => {
+                self.read_u64().map(|value| value as f64)
+            }
+            _ => self.read_i64().map(|value| value as f64),
         }
-        let b = self.take::<9>()?;
-        Ok(f64::from_bits(u64::from_be_bytes(
-            b[1..].try_into().unwrap(),
-        )))
     }
 
     #[inline(always)]

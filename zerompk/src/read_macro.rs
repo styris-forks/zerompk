@@ -46,41 +46,35 @@ macro_rules! impl_read_methods {
 
         #[inline(always)]
         fn read_f32(&mut self) -> Result<f32> {
-            let marker = {
+            if self.peek_marker()? != FLOAT32_MARKER {
+                return self.read_f64().map(|value| value as f32);
+            }
+            {
                 let $byte_reader = &mut *self;
                 $read_byte
             };
-            if marker == FLOAT32_MARKER {
-                Ok(f32::from_bits(u32::from_be_bytes({
-                    let $reader_4 = &mut *self;
-                    $read_4
-                })))
-            } else {
-                {
-                    let $reader = &mut *self;
-                    let $bad_marker = marker;
-                    $invalid
-                }
-            }
+            Ok(f32::from_bits(u32::from_be_bytes({
+                let $reader_4 = &mut *self;
+                $read_4
+            })))
         }
 
         #[inline(always)]
         fn read_f64(&mut self) -> Result<f64> {
-            let marker = {
-                let $byte_reader = &mut *self;
-                $read_byte
-            };
-            if marker == FLOAT64_MARKER {
-                Ok(f64::from_bits(u64::from_be_bytes({
-                    let $reader_8 = &mut *self;
-                    $read_8
-                })))
-            } else {
-                {
-                    let $reader = &mut *self;
-                    let $bad_marker = marker;
-                    $invalid
+            match self.peek_marker()? {
+                FLOAT32_MARKER => self.read_f32().map(f64::from),
+                FLOAT64_MARKER => {
+                    {
+                        let $byte_reader = &mut *self;
+                        $read_byte
+                    };
+                    Ok(f64::from_bits(u64::from_be_bytes({
+                        let $reader_8 = &mut *self;
+                        $read_8
+                    })))
                 }
+                UINT64_MARKER => self.read_u64().map(|value| value as f64),
+                _ => self.read_i64().map(|value| value as f64),
             }
         }
 
