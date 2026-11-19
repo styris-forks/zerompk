@@ -20,7 +20,87 @@ pub enum Value<'de> {
     Extension(i8, Cow<'de, [u8]>),
 }
 
-impl Value<'_> {
+/// One step into a [`Value`]: a position in an array or a key in a map.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Segment<'a> {
+    Index(usize),
+    /// Integer keys match by value, since MessagePack has one integer type and the same key
+    /// reads back as `Signed` or `Unsigned` depending on the marker it was written with.
+    Key(Value<'a>),
+}
+
+impl From<usize> for Segment<'_> {
+    fn from(index: usize) -> Self {
+        Self::Index(index)
+    }
+}
+
+impl<'a> From<&'a str> for Segment<'a> {
+    fn from(key: &'a str) -> Self {
+        Self::Key(Value::String(Cow::Borrowed(key)))
+    }
+}
+
+impl<'a> From<Value<'a>> for Segment<'a> {
+    fn from(key: Value<'a>) -> Self {
+        Self::Key(key)
+    }
+}
+
+impl<'de> Value<'de> {
+    /// The array element or map entry `segment` points at, if this is an array or map holding it.
+    pub fn get<'a>(&self, segment: impl Into<Segment<'a>>) -> Option<&Self> {
+        self.step(&segment.into())
+    }
+
+    pub fn get_mut<'a>(&mut self, segment: impl Into<Segment<'a>>) -> Option<&mut Self> {
+        self.step_mut(&segment.into())
+    }
+
+    /// Follows `path` one segment at a time, so `&["fields".into(), 0.into()]` reaches the
+    /// first element under the `fields` key.
+    pub fn pointer(&self, path: &[Segment<'_>]) -> Option<&Self> {
+        path.iter().try_fold(self, Self::step)
+    }
+
+    pub fn pointer_mut(&mut self, path: &[Segment<'_>]) -> Option<&mut Self> {
+        path.iter().try_fold(self, Self::step_mut)
+    }
+
+    /// Takes the array element or map entry `segment` points at out of this value. The map
+    /// entries left behind keep their order.
+    pub fn remove<'a>(&mut self, segment: impl Into<Segment<'a>>) -> Option<Self> {
+        match (self, segment.into()) {
+            (Self::Array(values), Segment::Index(index)) => {
+                (index < values.len()).then(|| values.remove(index))
+            }
+            (Self::Map(entries), Segment::Key(key)) => {
+                position_of(entries, &key).map(|position| entries.remove(position).1)
+            }
+            _ => None,
+        }
+    }
+
+    fn step<'v>(&'v self, segment: &Segment<'_>) -> Option<&'v Self> {
+        match (self, segment) {
+            (Self::Array(values), Segment::Index(index)) => values.get(*index),
+            (Self::Map(entries), Segment::Key(key)) => {
+                position_of(entries, key).map(|position| &entries[position].1)
+            }
+            _ => None,
+        }
+    }
+
+    fn step_mut<'v>(&'v mut self, segment: &Segment<'_>) -> Option<&'v mut Self> {
+        match (self, segment) {
+            (Self::Array(values), Segment::Index(index)) => values.get_mut(*index),
+            (Self::Map(entries), Segment::Key(key)) => {
+                position_of(entries, key).map(|position| &mut entries[position].1)
+            }
+            _ => None,
+        }
+    }
+
     /// Copies whatever is still borrowed from the input, so the value can outlive it.
     pub fn into_owned(self) -> Value<'static> {
         match self {
@@ -46,6 +126,18 @@ impl Value<'_> {
             }
         }
     }
+}
+
+fn position_of(entries: &[(Value<'_>, Value<'_>)], key: &Value<'_>) -> Option<usize> {
+    entries
+        .iter()
+        .position(|(entry_key, _)| match (entry_key, key) {
+            (Value::Unsigned(unsigned), Value::Signed(signed))
+            | (Value::Signed(signed), Value::Unsigned(unsigned)) => {
+                u64::try_from(*signed) == Ok(*unsigned)
+            }
+            _ => entry_key == key,
+        })
 }
 
 impl From<()> for Value<'_> {

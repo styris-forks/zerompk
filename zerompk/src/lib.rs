@@ -21,7 +21,7 @@ use alloc::vec::Vec;
 
 pub use error::{Error, Result};
 pub use read::{Read, SliceReader, Tag};
-pub use value::Value;
+pub use value::{Segment, Value};
 
 pub use write::Write;
 
