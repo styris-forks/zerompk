@@ -20,6 +20,34 @@ pub enum Value<'de> {
     Extension(i8, Cow<'de, [u8]>),
 }
 
+impl Value<'_> {
+    /// Copies whatever is still borrowed from the input, so the value can outlive it.
+    pub fn into_owned(self) -> Value<'static> {
+        match self {
+            Self::Nil => Value::Nil,
+            Self::Boolean(value) => Value::Boolean(value),
+            Self::Unsigned(value) => Value::Unsigned(value),
+            Self::Signed(value) => Value::Signed(value),
+            Self::Float32(value) => Value::Float32(value),
+            Self::Float64(value) => Value::Float64(value),
+            Self::String(value) => Value::String(Cow::Owned(value.into_owned())),
+            Self::Binary(value) => Value::Binary(Cow::Owned(value.into_owned())),
+            Self::Array(values) => {
+                Value::Array(values.into_iter().map(Value::into_owned).collect())
+            }
+            Self::Map(entries) => Value::Map(
+                entries
+                    .into_iter()
+                    .map(|(key, value)| (key.into_owned(), value.into_owned()))
+                    .collect(),
+            ),
+            Self::Extension(type_id, data) => {
+                Value::Extension(type_id, Cow::Owned(data.into_owned()))
+            }
+        }
+    }
+}
+
 impl From<()> for Value<'_> {
     fn from((): ()) -> Self {
         Self::Nil
